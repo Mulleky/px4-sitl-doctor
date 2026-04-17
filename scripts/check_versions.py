@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -84,15 +85,18 @@ def latest_github_release(owner: str, repo: str) -> tuple[str, tuple[int, int, i
 
 
 def latest_gazebo_major() -> int:
-    """Return the highest gz-sim major version found across recent releases."""
+    """Return the highest gz-sim major version found across recent releases.
+
+    Tags use the format gz-simN_N.M.P (e.g. gz-sim8_8.7.0), not plain semver.
+    """
     releases = _get(GITHUB_RELEASES.format(owner="gazebosim", repo="gz-sim"))
     majors = set()
     for rel in releases:
         if rel.get("prerelease") or rel.get("draft"):
             continue
-        major, _, _ = _parse_semver(rel["tag_name"])
-        if major > 0:
-            majors.add(major)
+        m = re.match(r"gz-sim(\d+)_", rel["tag_name"])
+        if m:
+            majors.add(int(m.group(1)))
     return max(majors) if majors else 0
 
 
