@@ -1,0 +1,2 @@
+[console_scripts]
+px4-doctor = px4_doctor.cli:main

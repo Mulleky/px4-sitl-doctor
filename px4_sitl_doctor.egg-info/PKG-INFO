@@ -1,0 +1,187 @@
+Metadata-Version: 2.4
+Name: px4-sitl-doctor
+Version: 0.1.0
+Summary: Pre-launch environment validator for the PX4 + ROS 2 + Gazebo SITL stack
+License: MIT License
+        
+        Copyright (c) 2026 Carlo Angulo
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Homepage, https://github.com/carloangulo/px4-sitl-doctor
+Project-URL: Repository, https://github.com/carloangulo/px4-sitl-doctor
+Project-URL: Issues, https://github.com/carloangulo/px4-sitl-doctor/issues
+Keywords: px4,ros2,gazebo,sitl,drone,uav,robotics
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: System :: Systems Administration
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: click>=8.0
+Requires-Dist: rich>=13.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: packaging>=23.0
+Requires-Dist: requests>=2.28
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10; extra == "dev"
+Dynamic: license-file
+
+# px4-sitl-doctor
+
+A pre-launch environment validator for the **PX4 + ROS 2 + Gazebo SITL** stack.
+
+Setting up PX4 SITL with Gazebo and ROS 2 requires exact version matches across six or more software components. Mismatches produce cryptic runtime errors. `px4-sitl-doctor` catches those mismatches **before** you launch and tells you exactly what to run to fix them.
+
+## Install
+
+```bash
+pip install px4-sitl-doctor
+```
+
+Or with pipx (recommended for system-wide use):
+
+```bash
+pipx install px4-sitl-doctor
+```
+
+## Usage
+
+```bash
+px4-doctor
+```
+
+That's it. The tool auto-detects your platform and runs all applicable checks.
+
+## Example output
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║            px4-sitl-doctor  v0.1.0                          ║
+║         Platform: ubuntu_22_04                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+── OS & Python ─────────────────────────────────────────────────
+✅  OS Version          Ubuntu 22.04 — supported
+✅  Python Version      3.10.12 — OK
+⚠️   Virtual Env        No venv active — system Python in use
+
+── ROS 2 ───────────────────────────────────────────────────────
+✅  ROS 2 Distro        humble detected
+✅  ROS 2 Sourced       AMENT_PREFIX_PATH is set
+❌  ROS_DISTRO Mismatch ROS_DISTRO=iron but binary reports humble
+   FIX: source /opt/ros/humble/setup.bash
+
+── Gazebo ──────────────────────────────────────────────────────
+✅  Gazebo Binary       gz 8.6.0 (Harmonic) found
+✅  ROS2+Gazebo Combo   humble + harmonic — compatible
+❌  Camera Plugin       libGstCameraSystem.so not found
+   FIX: cd ~/PX4-Autopilot && make px4_sitl gz_x500_mono_cam
+
+SUMMARY:  18 passed   2 warnings   1 failure
+Your environment has issues that will prevent SITL launch.
+```
+
+## What it checks
+
+| Check | Description | Platforms |
+|-------|-------------|-----------|
+| OS Version | Ubuntu 22.04 / 24.04 or WSL2 | All |
+| Python Version | Python >= 3.10 | All |
+| ROS 2 | Distro detection, sourcing, version | Linux / WSL2 |
+| Gazebo | Binary, version, ROS2 combo | Linux / WSL2 |
+| PX4 Autopilot | Repo detection, version, SITL build | Linux / WSL2 |
+| MicroXRCEAgent | Binary, version, port 8888 | Linux / WSL2 |
+| Environment Vars | GZ_SIM_*, ROS_DOMAIN_ID, AMENT_PREFIX_PATH | All |
+| Shared Libraries | libGstCameraSystem.so, libgps.so | Linux / WSL2 |
+| Port Availability | UDP 14540, 14541, 8888, 7447 | All |
+| ROS 2 Workspace | install/, px4_msgs, px4_ros_com | Linux / WSL2 |
+| Network | Internet, GitHub, PyPI reachability | All |
+| WSL2 | WSL2 kernel, X11, systemd, memory | WSL2 only |
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` / `-v` | Show detailed output for each check |
+| `--json` | Output results as JSON (for scripting) |
+| `--plain` | Plain text output, no colors (for CI) |
+| `--md` | Output results as Markdown |
+| `--px4-path PATH` | Override PX4-Autopilot directory |
+| `--ws-path PATH` | Override ROS 2 workspace directory |
+| `--offline` | Skip network checks |
+| `--only CHECKER[,...]` | Run only named checker(s) |
+| `--skip CHECKER[,...]` | Skip named checker(s) |
+| `--update-matrix` | Fetch latest compatibility rules from GitHub |
+| `--version` | Print version and exit |
+
+Checker names: `os`, `python`, `ros2`, `gazebo`, `px4`, `microxrce`, `env`, `library`, `port`, `workspace`, `network`, `wsl`
+
+## Subcommands
+
+```bash
+px4-doctor list-combos   # Print all known compatible version combinations
+```
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | All checks passed |
+| 1 | Warnings only |
+| 2 | One or more failures |
+
+## Updating the compatibility rules
+
+```bash
+px4-doctor --update-matrix
+```
+
+This fetches the latest `compatibility.yaml` from GitHub and saves it locally. You get updated rules without reinstalling.
+
+## Supported environments
+
+| OS | ROS 2 | Gazebo | PX4 | Status |
+|----|-------|--------|-----|--------|
+| Ubuntu 22.04 | Humble | Harmonic | >= 1.14.0 | ✅ Recommended |
+| Ubuntu 24.04 | Jazzy | Harmonic | >= 1.15.0 | ✅ Supported |
+| Ubuntu 24.04 | Jazzy | Ionic | >= 1.15.0 | ⚠️ Cutting-edge |
+| Windows 10/11 WSL2 | (via WSL2) | (via WSL2) | (via WSL2) | ✅ Supported |
+| Windows 10/11 native | — | — | — | ⚠️ Port/Python checks only |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+"Adding a new check is as simple as creating one file in `checkers/` and registering it in `runner.py`."
+
+## License
+
+MIT — see [LICENSE](LICENSE).

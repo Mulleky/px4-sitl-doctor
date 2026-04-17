@@ -1,0 +1,148 @@
+meta:
+  schema_version: 1
+  last_updated: "2026-04-01"
+  source: "https://github.com/carloangulo/px4-sitl-doctor/blob/main/px4_doctor/data/compatibility.yaml"
+
+platforms:
+  - id: ubuntu_22_04
+    display: "Ubuntu 22.04 LTS (Jammy)"
+    min_supported: true
+  - id: ubuntu_24_04
+    display: "Ubuntu 24.04 LTS (Noble)"
+    min_supported: true
+  - id: windows_wsl2
+    display: "Windows 10/11 with WSL2 (Ubuntu guest)"
+    min_supported: true
+  - id: windows_native
+    display: "Windows 10/11 native Python"
+    partial: true
+    note: >
+      ROS 2 and PX4 are not natively supported on Windows. Only env and
+      port checks run in this mode. WSL2 is strongly recommended.
+
+combos:
+  - name: "Humble + Harmonic (LTS)"
+    ros2: "humble"
+    gazebo: "harmonic"
+    gazebo_major: 8
+    px4_min: "1.14.0"
+    px4_max: "1.15.99"
+    ubuntu: ["22.04", "24.04"]
+    microxrce_min: "2.4.0"
+    python_min: "3.10"
+    notes: "Recommended stable combination as of 2026."
+
+  - name: "Jazzy + Harmonic"
+    ros2: "jazzy"
+    gazebo: "harmonic"
+    gazebo_major: 8
+    px4_min: "1.15.0"
+    px4_max: null
+    ubuntu: ["24.04"]
+    microxrce_min: "2.4.0"
+    python_min: "3.12"
+    notes: "Latest LTS ROS 2 distro. Requires Ubuntu 24.04."
+
+  - name: "Jazzy + Ionic"
+    ros2: "jazzy"
+    gazebo: "ionic"
+    gazebo_major: 9
+    px4_min: "1.15.0"
+    px4_max: null
+    ubuntu: ["24.04"]
+    microxrce_min: "2.4.0"
+    python_min: "3.12"
+    notes: "Cutting-edge. Expect instability."
+
+required_env_vars:
+  linux:
+    - name: GZ_SIM_RESOURCE_PATH
+      description: "Gazebo model/world resource search path"
+      required: true
+      check_path: true
+      fix: "Add to ~/.bashrc: export GZ_SIM_RESOURCE_PATH=$HOME/PX4-Autopilot/Tools/simulation/gz/models"
+    - name: GZ_SIM_SYSTEM_PLUGIN_PATH
+      description: "Gazebo system plugin search path"
+      required: true
+      check_path: false
+      fix: "Add to ~/.bashrc: export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/PX4-Autopilot/build/px4_sitl_default/lib"
+    - name: ROS_DOMAIN_ID
+      description: "ROS 2 DDS domain isolation"
+      required: false
+      check_path: false
+      fix: "Optional but recommended: export ROS_DOMAIN_ID=0"
+    - name: AMENT_PREFIX_PATH
+      description: "Indicates that a ROS 2 workspace has been sourced"
+      required: true
+      check_path: false
+      fix: "Source your ROS 2 installation: source /opt/ros/humble/setup.bash"
+  windows_wsl2:
+    - name: DISPLAY
+      description: "X11 display forwarding for GUI tools"
+      required: true
+      check_path: false
+      fix: >
+        Add to ~/.bashrc in WSL2:
+        export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0.0
+
+required_binaries:
+  linux:
+    - name: MicroXRCEAgent
+      version_flag: "--version"
+      description: "XRCE-DDS middleware bridge between PX4 and ROS 2"
+      fix: "pip install uxr-client  # or: sudo snap install micro-xrce-dds-agent"
+    - name: gz
+      version_flag: "--version"
+      description: "Gazebo Sim launcher"
+      fix: "sudo apt install gz-harmonic"
+    - name: ros2
+      version_flag: "--version"
+      description: "ROS 2 CLI"
+      fix: "Source your ROS 2 workspace: source /opt/ros/humble/setup.bash"
+    - name: colcon
+      version_flag: "--version"
+      description: "ROS 2 build tool"
+      fix: "pip install colcon-common-extensions"
+  windows_wsl2:
+    - name: MicroXRCEAgent
+      version_flag: "--version"
+      description: "XRCE-DDS middleware bridge"
+      fix: "Run inside WSL2 Ubuntu instance"
+    - name: gz
+      version_flag: "--version"
+      description: "Gazebo Sim launcher"
+      fix: "Run inside WSL2 Ubuntu instance"
+
+required_libraries:
+  linux:
+    - name: libGstCameraSystem.so
+      search_paths:
+        - "~/.gz/sim/plugins"
+        - "~/PX4-Autopilot/build/px4_sitl_default/lib"
+      description: "Gazebo camera plugin required for camera SITL"
+      fix: "Build PX4-Autopilot with: cd ~/PX4-Autopilot && make px4_sitl gz_x500_mono_cam"
+    - name: libgps.so
+      search_paths:
+        - "/usr/lib"
+        - "/usr/local/lib"
+      description: "gpsd shared library (needed by some PX4 configs)"
+      fix: "sudo apt install libgps-dev"
+    - name: libpx4.so
+      search_paths:
+        - "~/PX4-Autopilot/build/px4_sitl_default/lib"
+      description: "PX4 SITL shared library"
+      fix: "Build PX4: cd ~/PX4-Autopilot && make px4_sitl gz_x500"
+
+required_ports:
+  - port: 14540
+    protocol: UDP
+    description: "MAVLink UDP (vehicle 1)"
+  - port: 14541
+    protocol: UDP
+    description: "MAVLink UDP (vehicle 2, multi-drone)"
+  - port: 8888
+    protocol: UDP
+    description: "XRCE-DDS default agent port"
+  - port: 7447
+    protocol: UDP
+    description: "RTPS discovery (Fast-DDS)"

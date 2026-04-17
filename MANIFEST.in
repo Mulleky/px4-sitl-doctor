@@ -1,0 +1,4 @@
+include px4_doctor/data/*.yaml
+include README.md
+include LICENSE
+include CHANGELOG.md
