@@ -1,8 +1,12 @@
 # px4-sitl-doctor
-
 A pre-launch environment validator for the **PX4 + ROS 2 + Gazebo SITL** stack.
 
 Setting up PX4 SITL with Gazebo and ROS 2 requires exact version matches across six or more software components. Mismatches produce cryptic runtime errors. `px4-sitl-doctor` catches those mismatches **before** you launch and tells you exactly what to run to fix them.
+
+px4-sitl-doctor validates your PX4 + ROS 2 + Gazebo SITL environment in seconds. 
+Detects version mismatches, missing binaries, broken env vars, and port conflicts 
+before simulation launch. Runs on Ubuntu 22/24, Windows WSL2. Zero dependencies beyond 
+Python 3.10+. 12 modular checks, colour output, JSON export, CI-friendly exit codes.
 
 ## Install
 
