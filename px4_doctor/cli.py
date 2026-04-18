@@ -172,3 +172,7 @@ def _update_matrix() -> None:
 
     version = data.get("meta", {}).get("last_updated", "unknown")
     click.echo(f"Matrix updated successfully (last_updated: {version})")
+
+
+if __name__ == "__main__":
+    main()
