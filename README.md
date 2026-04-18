@@ -126,51 +126,12 @@ This fetches the latest `compatibility.yaml` from GitHub and saves it locally. Y
 
 ## Troubleshooting
 
-### `px4-doctor: command not found`
-
-If you see this after installing, try:
-
-**Option 1: Use the full path (always works)**
-```bash
-C:\Users\YOUR_USERNAME\AppData\Roaming\PythonXYZ\Scripts\px4-doctor.exe --plain
-```
-(Replace `XYZ` with your Python version, e.g., `Python314`)
-
-**Option 2: Use Python module directly**
-```bash
-python -m px4_doctor.cli --plain
-```
-
-**Option 3: Fix PATH permanently**
-```bash
-setx PATH "%PATH%;C:\Users\YOUR_USERNAME\AppData\Roaming\PythonXYZ\Scripts"
-```
-⚠️ **Important:** Close and open a **new** command prompt window after running `setx`. The change won't take effect in your current terminal.
-
-### Running on Windows native — all ROS 2/Gazebo checks skipped?
-
-If the tool says:
-```
-[WARN]  OS Version   Windows native Python detected...
-```
-
-This is **correct**. PX4 SITL with ROS 2 + Gazebo requires **WSL2** on Windows.
-
-To run the full check suite:
-```bash
-wsl                    # Enter your WSL2 Ubuntu instance
-pip install px4-sitl-doctor
-px4-doctor --plain
-```
-
-### All tests passing but no ROS 2/Gazebo/PX4 detected?
-
-You probably haven't installed them yet. Run:
-```bash
-px4-doctor --offline   # Skip network checks if offline
-```
-
-Then follow the FIX commands in the output to install each component.
+See [DEBUGGING.md](DEBUGGING.md) for a full guide covering:
+- Tool not found / command not found
+- Windows native — most checks skipped
+- ROS 2, Gazebo, MicroXRCEAgent, PX4, Workspace issues
+- Port conflicts and environment variable problems
+- Running specific checks only
 
 ## Contributing
 
