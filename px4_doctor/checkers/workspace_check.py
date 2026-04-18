@@ -30,10 +30,20 @@ def _find_workspace(override: Path | None = None) -> Path | None:
             candidate = base / name
             if candidate.is_dir():
                 return candidate
-    # Check if current dir is a workspace
     if (cwd / "install").is_dir() and (cwd / "src").is_dir():
         return cwd
     return None
+
+
+def _get_installed_ros2_packages() -> set[str]:
+    """Return set of packages visible to `ros2 pkg list`, or empty set on failure."""
+    ros2_bin = find_binary("ros2")
+    if not ros2_bin:
+        return set()
+    rc, stdout, _ = run_cmd(["ros2", "pkg", "list"], timeout=10)
+    if rc != 0:
+        return set()
+    return set(stdout.splitlines())
 
 
 class WorkspaceChecker(BaseChecker):
@@ -79,22 +89,53 @@ class WorkspaceChecker(BaseChecker):
             message=f"Workspace found: {ws}",
         ))
 
-        # 2. install/ directory
+        # 2. install/ directory — check before failing if packages are system-installed
         install_dir = ws / "install"
-        if install_dir.is_dir():
-            results.append(CheckResult(
-                checker_name="Workspace Built",
-                status="pass",
-                message=f"install/ directory exists in {ws}",
-            ))
-        else:
-            results.append(CheckResult(
-                checker_name="Workspace Built",
-                status="fail",
-                message=f"install/ directory missing — workspace has not been built",
-                fix=f"cd {ws} && colcon build --symlink-install",
-            ))
+        if not install_dir.is_dir():
+            installed_pkgs = _get_installed_ros2_packages()
+            found = [p for p in _REQUIRED_PACKAGES if p in installed_pkgs]
+            missing = [p for p in _REQUIRED_PACKAGES if p not in installed_pkgs]
+
+            if found:
+                results.append(CheckResult(
+                    checker_name="Workspace Built",
+                    status="warn",
+                    message=(
+                        f"Workspace not colcon-built (no install/), but "
+                        f"{', '.join(found)} found in system ROS 2 environment — SITL may work"
+                    ),
+                    fix=(
+                        f"cd {ws} && colcon build --symlink-install\n"
+                        "(Recommended for full isolation; not required if using system packages)"
+                    ),
+                ))
+                if missing:
+                    for pkg in missing:
+                        results.append(CheckResult(
+                            checker_name=f"Package: {pkg}",
+                            status="warn",
+                            message=f"{pkg} not found in system ROS 2 or workspace",
+                            fix=(
+                                f"Clone and build {pkg}:\n"
+                                f"  cd {ws}/src && git clone "
+                                f"https://github.com/PX4/{pkg}.git\n"
+                                f"  cd {ws} && colcon build --symlink-install"
+                            ),
+                        ))
+            else:
+                results.append(CheckResult(
+                    checker_name="Workspace Built",
+                    status="fail",
+                    message="install/ directory missing — workspace has not been built",
+                    fix=f"cd {ws} && colcon build --symlink-install",
+                ))
             return results
+
+        results.append(CheckResult(
+            checker_name="Workspace Built",
+            status="pass",
+            message=f"install/ directory exists in {ws}",
+        ))
 
         # 3. local_setup.bash sourced
         local_setup = install_dir / "local_setup.bash"
@@ -124,10 +165,8 @@ class WorkspaceChecker(BaseChecker):
             ))
 
         # 4. Required packages
-        ros2_bin = find_binary("ros2")
-        if ros2_bin:
-            rc, stdout, _ = run_cmd(["ros2", "pkg", "list"], timeout=10)
-            installed_pkgs = set(stdout.splitlines()) if rc == 0 else set()
+        installed_pkgs = _get_installed_ros2_packages()
+        if installed_pkgs:
             for pkg in _REQUIRED_PACKAGES:
                 if pkg in installed_pkgs:
                     results.append(CheckResult(

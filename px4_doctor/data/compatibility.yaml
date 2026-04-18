@@ -56,16 +56,6 @@ combos:
 
 required_env_vars:
   linux:
-    - name: GZ_SIM_RESOURCE_PATH
-      description: "Gazebo model/world resource search path"
-      required: true
-      check_path: true
-      fix: "Add to ~/.bashrc: export GZ_SIM_RESOURCE_PATH=$HOME/PX4-Autopilot/Tools/simulation/gz/models"
-    - name: GZ_SIM_SYSTEM_PLUGIN_PATH
-      description: "Gazebo system plugin search path"
-      required: true
-      check_path: false
-      fix: "Add to ~/.bashrc: export GZ_SIM_SYSTEM_PLUGIN_PATH=$HOME/PX4-Autopilot/build/px4_sitl_default/lib"
     - name: ROS_DOMAIN_ID
       description: "ROS 2 DDS domain isolation"
       required: false

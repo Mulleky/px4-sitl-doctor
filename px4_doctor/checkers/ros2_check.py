@@ -11,7 +11,7 @@ from px4_doctor.models.result import CheckResult
 from px4_doctor.platform_utils import detect_platform, find_binary, run_cmd
 
 _SKIP_PLATFORMS = {"windows_native", "macos"}
-_KNOWN_DISTROS = {"humble", "iron", "jazzy", "rolling"}
+_KNOWN_DISTROS = {"humble", "iron", "jazzy", "kilted", "rolling"}
 
 
 def _detect_distro_from_binary() -> str | None:
@@ -21,6 +21,14 @@ def _detect_distro_from_binary() -> str | None:
     for distro in _KNOWN_DISTROS:
         if distro in output:
             return distro
+    return None
+
+
+def _detect_distro_from_env() -> str | None:
+    """Return ROS_DISTRO env var if set and /opt/ros/<distro> exists."""
+    distro = os.environ.get("ROS_DISTRO", "").lower().strip()
+    if distro and Path(f"/opt/ros/{distro}").exists():
+        return distro
     return None
 
 
@@ -64,13 +72,12 @@ class ROS2Checker(BaseChecker):
                     "  sudo apt install ros-humble-desktop"
                 ),
             ))
-            # Cannot proceed without binary
             return results
 
-        # 2. Detect distro from binary
+        # 2. Detect distro — try binary output first, then env+filesystem fallback
         binary_distro = _detect_distro_from_binary()
-        # 3. Detect installed distros from /opt/ros/
         opt_distros = _detect_distro_from_opt()
+        env_distro = os.environ.get("ROS_DISTRO", "").lower().strip()
 
         if binary_distro:
             results.append(CheckResult(
@@ -78,20 +85,41 @@ class ROS2Checker(BaseChecker):
                 status="pass",
                 message=f"ROS 2 '{binary_distro}' detected from binary output",
             ))
+            resolved_distro = binary_distro
         else:
-            results.append(CheckResult(
-                checker_name="ROS 2 Distro",
-                status="warn",
-                message="Could not parse ROS 2 distro name from 'ros2 --version' output",
-                detail=(
-                    f"Installed in /opt/ros: {opt_distros or 'none found'}. "
-                    "Ensure the correct setup.bash is sourced."
-                ),
-                fix="source /opt/ros/humble/setup.bash  # adjust for your distro",
-            ))
+            # Fall back to ROS_DISTRO env var confirmed by /opt/ros/<distro> on disk
+            env_confirmed = _detect_distro_from_env()
+            if env_confirmed:
+                results.append(CheckResult(
+                    checker_name="ROS 2 Distro",
+                    status="pass",
+                    message=(
+                        f"ROS 2 '{env_confirmed}' confirmed via ROS_DISTRO + /opt/ros/"
+                        f" (binary output did not include distro name)"
+                    ),
+                ))
+                resolved_distro = env_confirmed
+            elif env_distro:
+                results.append(CheckResult(
+                    checker_name="ROS 2 Distro",
+                    status="warn",
+                    message=(
+                        f"ROS_DISTRO='{env_distro}' is set but /opt/ros/{env_distro} not found"
+                    ),
+                    fix=f"Install ROS 2 {env_distro} or correct ROS_DISTRO in ~/.bashrc",
+                ))
+                resolved_distro = None
+            else:
+                results.append(CheckResult(
+                    checker_name="ROS 2 Distro",
+                    status="warn",
+                    message="Could not determine ROS 2 distro from binary or environment",
+                    detail=f"Installed in /opt/ros: {opt_distros or 'none found'}",
+                    fix="source /opt/ros/<distro>/setup.bash  # e.g. jazzy or humble",
+                ))
+                resolved_distro = None
 
-        # 4. ROS_DISTRO env var
-        env_distro = os.environ.get("ROS_DISTRO", "")
+        # 3. ROS_DISTRO env var consistency
         if not env_distro:
             results.append(CheckResult(
                 checker_name="ROS_DISTRO env var",
@@ -103,23 +131,21 @@ class ROS2Checker(BaseChecker):
                     "Add to ~/.bashrc to persist."
                 ),
             ))
-        elif binary_distro and env_distro.lower() != binary_distro.lower():
+        elif resolved_distro and env_distro != resolved_distro:
             results.append(CheckResult(
                 checker_name="ROS_DISTRO env var",
                 status="fail",
-                message=(
-                    f"ROS_DISTRO={env_distro!r} but binary reports '{binary_distro}' — mismatch!"
-                ),
-                fix=f"source /opt/ros/{binary_distro}/setup.bash",
+                message=f"ROS_DISTRO={env_distro!r} but detected distro is '{resolved_distro}' — mismatch!",
+                fix=f"source /opt/ros/{resolved_distro}/setup.bash",
             ))
         else:
             results.append(CheckResult(
                 checker_name="ROS_DISTRO env var",
                 status="pass",
-                message=f"ROS_DISTRO={env_distro!r} — matches binary",
+                message=f"ROS_DISTRO='{env_distro}' — matches binary",
             ))
 
-        # 5. AMENT_PREFIX_PATH (confirms workspace was sourced)
+        # 4. AMENT_PREFIX_PATH (confirms workspace was sourced)
         if os.environ.get("AMENT_PREFIX_PATH"):
             results.append(CheckResult(
                 checker_name="ROS 2 Sourced",
@@ -134,16 +160,16 @@ class ROS2Checker(BaseChecker):
                 fix="source /opt/ros/humble/setup.bash  # Add to ~/.bashrc",
             ))
 
-        # 6. Matrix compatibility
-        if self._matrix and binary_distro:
+        # 5. Matrix compatibility
+        if self._matrix and resolved_distro:
             combos = self._matrix.get_combos()
             known_ros2 = {c["ros2"] for c in combos}
-            if binary_distro not in known_ros2:
+            if resolved_distro not in known_ros2:
                 results.append(CheckResult(
                     checker_name="ROS 2 Compatibility",
                     status="warn",
                     message=(
-                        f"ROS 2 '{binary_distro}' is not listed in the compatibility matrix. "
+                        f"ROS 2 '{resolved_distro}' is not listed in the compatibility matrix. "
                         f"Known distros: {sorted(known_ros2)}"
                     ),
                     fix="Use one of the tested ROS 2 distros: humble, jazzy",
