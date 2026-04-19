@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import importlib.resources
+import logging
+import os
 from pathlib import Path
 from typing import Any
+
+import yaml
+
+logger = logging.getLogger(__name__)
 
 
 _GITHUB_URL = (
@@ -14,46 +20,79 @@ _GITHUB_URL = (
 _FETCH_TIMEOUT = 2  # seconds
 
 
-def _load_bundled() -> dict:
-    """Load the YAML bundled with the package."""
-    import yaml  # type: ignore[import-untyped]
+def user_override_path() -> Path:
+    """Location of the user-writable matrix override (populated by --update-matrix)."""
+    xdg = os.environ.get("XDG_DATA_HOME")
+    base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / "px4-doctor" / "compatibility.yaml"
 
+
+def _load_user_override() -> dict | None:
+    """Return parsed YAML from the user-override path, or None if not present/invalid."""
+    path = user_override_path()
+    if not path.exists():
+        return None
     try:
-        # Python 3.9+ importlib.resources API
+        return yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        logger.debug("Failed to load user-override matrix at %s: %s", path, exc)
+        return None
+
+
+def _load_bundled() -> dict:
+    """Load the YAML bundled with the package.
+
+    Raises FileNotFoundError or yaml.YAMLError if the bundled file is missing or
+    malformed — this is a packaging bug, not a runtime condition to hide.
+    """
+    try:
         ref = importlib.resources.files("px4_doctor") / "data" / "compatibility.yaml"
         with importlib.resources.as_file(ref) as p:
             return yaml.safe_load(p.read_text(encoding="utf-8"))
-    except Exception:  # noqa: BLE001
-        # Fallback: find relative to this file
+    except (FileNotFoundError, ModuleNotFoundError) as exc:
+        logger.debug("importlib.resources lookup failed, using relative path: %s", exc)
         data_path = Path(__file__).parent.parent / "data" / "compatibility.yaml"
-        import yaml
         return yaml.safe_load(data_path.read_text(encoding="utf-8"))
 
 
 def _fetch_remote() -> dict | None:
-    """Attempt to fetch the latest YAML from GitHub. Returns None on any error."""
+    """Attempt to fetch the latest YAML from GitHub. Returns None on failure."""
     try:
         import requests  # type: ignore[import-untyped]
-        import yaml  # type: ignore[import-untyped]
+    except ImportError:
+        logger.debug("requests not installed; skipping remote matrix fetch")
+        return None
 
+    try:
         resp = requests.get(_GITHUB_URL, timeout=_FETCH_TIMEOUT)
         resp.raise_for_status()
         return yaml.safe_load(resp.text)
-    except Exception:  # noqa: BLE001
+    except (requests.RequestException, yaml.YAMLError) as exc:
+        logger.debug("Remote matrix fetch failed: %s", exc)
         return None
 
 
 class CompatMatrix:
     """Wrapper around the compatibility YAML data.
 
-    On first instantiation it attempts to fetch the latest rules from GitHub
-    (2-second timeout). On failure it silently falls back to the bundled copy.
+    Load priority (highest → lowest):
+      1. Remote GitHub fetch (only if ``fetch_remote=True``)
+      2. User-override path (``~/.local/share/px4-doctor/compatibility.yaml``)
+      3. Bundled YAML shipped with the package
+
+    The default never touches the network, so CLI startup is fast and offline-safe.
+    Pass ``fetch_remote=True`` only when the caller specifically wants freshness.
     """
 
-    def __init__(self, offline: bool = False) -> None:
+    def __init__(self, fetch_remote: bool = False, offline: bool | None = None) -> None:
+        # ``offline`` is kept for backward compatibility and is ignored —
+        # remote fetch is now opt-in via ``fetch_remote``.
+        del offline
         data: dict | None = None
-        if not offline:
+        if fetch_remote:
             data = _fetch_remote()
+        if data is None:
+            data = _load_user_override()
         if data is None:
             data = _load_bundled()
         self._data: dict[str, Any] = data
@@ -120,7 +159,7 @@ class CompatMatrix:
         """Return required binaries for *platform*."""
         bin_section: dict = self._data.get("required_binaries", {})
         if platform in ("ubuntu_22_04", "ubuntu_24_04", "ubuntu_other", "windows_wsl2"):
-            key = "linux" if platform != "windows_wsl2" else "windows_wsl2"
+            key = "windows_wsl2" if platform == "windows_wsl2" else "linux"
             return bin_section.get(key, bin_section.get("linux", []))
         return []
 

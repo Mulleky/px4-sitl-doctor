@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+import traceback
 from dataclasses import dataclass, field
 
 from px4_doctor.models.compat_matrix import CompatMatrix
 from px4_doctor.models.result import CheckResult
 from px4_doctor.platform_utils import detect_platform
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -85,7 +89,7 @@ class DoctorRunner:
     def __init__(self, options: RunOptions | None = None) -> None:
         self._options = options or RunOptions()
         self._platform = detect_platform()
-        self._matrix = CompatMatrix(offline=self._options.offline)
+        self._matrix = CompatMatrix()
 
     def _build_checkers(self) -> list:
         """Instantiate all checkers, injecting shared context."""
@@ -149,10 +153,12 @@ class DoctorRunner:
             try:
                 results.extend(checker.run())
             except Exception as exc:  # noqa: BLE001
+                tb = traceback.format_exc()
+                logger.debug("Checker %s raised: %s", checker.name, tb)
                 results.append(CheckResult(
                     checker_name=checker.name,
                     status="fail",
                     message=f"Checker raised an unexpected error: {exc}",
-                    detail=str(exc),
+                    detail=tb,
                 ))
         return RunReport(results=results, platform=self._platform)

@@ -84,7 +84,7 @@ Your environment has issues that will prevent SITL launch.
 | `--md` | Output results as Markdown |
 | `--px4-path PATH` | Override PX4-Autopilot directory |
 | `--ws-path PATH` | Override ROS 2 workspace directory |
-| `--offline` | Skip network checks |
+| `--offline` | Skip network-based checks (matrix is loaded locally by default regardless) |
 | `--only CHECKER[,...]` | Run only named checker(s) |
 | `--skip CHECKER[,...]` | Skip named checker(s) |
 | `--update-matrix` | Fetch latest compatibility rules from GitHub |
@@ -112,7 +112,9 @@ px4-doctor list-combos   # Print all known compatible version combinations
 px4-doctor --update-matrix
 ```
 
-This fetches the latest `compatibility.yaml` from GitHub and saves it locally. You get updated rules without reinstalling.
+This fetches the latest `compatibility.yaml` from GitHub and writes it to a user-writable location — `$XDG_DATA_HOME/px4-doctor/compatibility.yaml` (defaults to `~/.local/share/px4-doctor/compatibility.yaml`). Subsequent runs prefer this override over the bundled copy, so pip-installed and wheel-installed users get fresh rules without reinstalling or needing write access to the package directory.
+
+Normal `px4-doctor` runs do **not** touch the network — matrix loading is local-only by default for fast, offline-safe startup. Use `--update-matrix` explicitly when you want the latest rules.
 
 ## Supported environments
 

@@ -6,6 +6,8 @@ import os
 import re
 from pathlib import Path
 
+from packaging.version import Version
+
 from px4_doctor.checkers.base import BaseChecker
 from px4_doctor.models.result import CheckResult
 from px4_doctor.platform_utils import detect_platform, find_binary, parse_version, run_cmd
@@ -17,7 +19,7 @@ _MAJOR_TO_NAME = {6: "fortress", 7: "garden", 8: "harmonic", 9: "ionic", 10: "je
 _NAME_TO_MAJOR = {v: k for k, v in _MAJOR_TO_NAME.items()}
 
 
-def _detect_gazebo() -> tuple[str | None, object | None, str | None]:
+def _detect_gazebo() -> tuple[str | None, Version | None, str | None]:
     """Return (binary, parsed_version, codename) — version/codename may be None."""
     for binary in ("gz", "ign"):
         if not find_binary(binary):
@@ -80,7 +82,7 @@ def _check_gz_env(var_name: str, default_path: Path) -> CheckResult:
 
     if value:
         # Tier 1: set in shell — verify at least one path exists
-        paths = [Path(p) for p in value.split(":") if p]
+        paths = [Path(p) for p in value.split(os.pathsep) if p]
         existing = [p for p in paths if p.exists()]
         if existing:
             return CheckResult(
@@ -222,7 +224,7 @@ class GazeboChecker(BaseChecker):
             Path.home() / "PX4-Autopilot" / "build" / "px4_sitl_default" / "lib",
         ]
         if plugin_path:
-            for p in plugin_path.split(":"):
+            for p in plugin_path.split(os.pathsep):
                 search_dirs.append(Path(p))
 
         if any((d / camera_lib).exists() for d in search_dirs):

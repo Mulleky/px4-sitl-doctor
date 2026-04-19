@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 from px4_doctor.checkers.base import BaseChecker
@@ -56,9 +55,7 @@ class EnvChecker(BaseChecker):
             else:
                 # Variable is set; optionally verify the path exists
                 if check_path:
-                    # Handle path-separated lists: ":" on Linux, ";" on Windows
-                    sep = ";" if sys.platform == "win32" else ":"
-                    first_path = value.split(sep)[0]
+                    first_path = value.split(os.pathsep)[0]
                     if Path(first_path).exists():
                         results.append(CheckResult(
                             checker_name=name,

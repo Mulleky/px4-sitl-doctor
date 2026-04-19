@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 import socket
 
+from packaging.version import Version
+
 from px4_doctor.checkers.base import BaseChecker
 from px4_doctor.models.result import CheckResult
 from px4_doctor.platform_utils import detect_platform, find_binary, parse_version, run_cmd
@@ -14,7 +16,7 @@ _AGENT_PORT = 8888
 _MIN_VERSION_FALLBACK = "2.4.0"
 
 
-def _parse_microxrce_version(combined: str) -> object | None:
+def _parse_microxrce_version(combined: str) -> Version | None:
     """Try to parse a semver string from MicroXRCEAgent output."""
     m = re.search(r"(\d+\.\d+\.\d+)", combined)
     if m:
@@ -22,7 +24,7 @@ def _parse_microxrce_version(combined: str) -> object | None:
     return None
 
 
-def _detect_microxrce_version() -> tuple[object | None, str]:
+def _detect_microxrce_version() -> tuple[Version | None, str]:
     """Try multiple invocations to extract a version. Returns (version, raw_output)."""
     for args in (["--version"], ["-v"], []):
         rc, stdout, stderr = run_cmd(["MicroXRCEAgent"] + args, timeout=4)

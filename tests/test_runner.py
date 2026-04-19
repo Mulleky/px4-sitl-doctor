@@ -108,3 +108,38 @@ class TestDoctorRunner:
 
         fail_results = [r for r in report.results if r.status == "fail"]
         assert fail_results
+        # Regression for issue #4: the traceback must be preserved in detail,
+        # not just str(exc), so --verbose can show it.
+        boom = [r for r in fail_results if r.checker_name == "Broken"]
+        assert boom, "BrokenChecker should have produced a fail result"
+        assert boom[0].detail is not None
+        assert "RuntimeError" in boom[0].detail
+        assert "unexpected boom" in boom[0].detail
+        assert "Traceback" in boom[0].detail
+
+    def test_exit_code_empty_results(self):
+        """Zero results (e.g. --only with unknown name) should exit 0 cleanly."""
+        report = RunReport(results=[], platform="ubuntu_22_04")
+        assert report.exit_code == 0
+        assert report.pass_count == 0
+        assert report.fail_count == 0
+
+    def test_checker_returning_malformed_does_not_crash(self):
+        from px4_doctor.checkers.base import BaseChecker
+
+        class WeirdChecker(BaseChecker):
+            name = "Weird"
+            category = "core"
+            platforms = ["all"]
+
+            def run(self):
+                # Returns empty list — legal but edge case
+                return []
+
+        options = RunOptions(offline=True)
+        with patch("px4_doctor.runner.detect_platform", return_value="ubuntu_22_04"):
+            runner = DoctorRunner(options)
+            runner._build_checkers = lambda: [WeirdChecker()]
+            report = runner.run_all()
+        assert report.results == []
+        assert report.exit_code == 0

@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from packaging.version import InvalidVersion, Version
+
 
 def detect_platform() -> str:
     """Return a canonical platform string.
@@ -89,29 +91,24 @@ def find_binary(name: str) -> str | None:
     return shutil.which(name)
 
 
-def parse_version(raw: str) -> object | None:
+def parse_version(raw: str) -> Version | None:
     """Parse a version string using packaging, stripping common prefixes.
 
     Returns a packaging.version.Version, or None if unparseable.
     """
-    try:
-        from packaging.version import Version, InvalidVersion  # type: ignore[import-untyped]
-    except ImportError:
-        return None
-
     if not raw:
         return None
 
     raw = raw.strip()
     # Strip common CLI output prefixes: "v1.2.3", "gz version 8.6.0", etc.
     raw = re.sub(r"^[^\d]*", "", raw)
-    # Take only the first whitespace-separated token
-    raw = raw.split()[0] if raw.split() else raw
-    # Strip trailing non-numeric junk (e.g., "-rc1", ".post1" is fine for packaging)
+    tokens = raw.split()
+    raw = tokens[0] if tokens else ""
+    if not raw:
+        return None
     try:
         return Version(raw)
     except InvalidVersion:
-        # Try stripping everything after the first non-version character
         m = re.match(r"(\d+(?:\.\d+)*)", raw)
         if m:
             try:

@@ -22,7 +22,10 @@ def test_skips_on_windows_native():
 
 def test_fail_when_binary_missing():
     checker = _make_checker()
-    with patch("px4_doctor.checkers.gazebo_check._detect_gazebo", return_value=(None, None)):
+    with patch(
+        "px4_doctor.checkers.gazebo_check._detect_gazebo",
+        return_value=(None, None, None),
+    ):
         results = checker.run()
     assert any(r.status == "fail" for r in results)
     fail = next(r for r in results if r.status == "fail")
@@ -34,8 +37,10 @@ def test_pass_with_harmonic(monkeypatch):
     checker = _make_checker(ros2_distro="humble")
     monkeypatch.delenv("GZ_SIM_RESOURCE_PATH", raising=False)
     monkeypatch.delenv("GZ_SIM_SYSTEM_PLUGIN_PATH", raising=False)
-    with patch("px4_doctor.checkers.gazebo_check._detect_gazebo",
-               return_value=("gz", Version("8.6.0"))):
+    with patch(
+        "px4_doctor.checkers.gazebo_check._detect_gazebo",
+        return_value=("gz", Version("8.6.0"), "harmonic"),
+    ):
         results = checker.run()
     binary_result = next(r for r in results if r.checker_name == "Gazebo Binary")
     assert binary_result.status == "pass"

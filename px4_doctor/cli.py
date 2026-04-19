@@ -136,9 +136,11 @@ def list_combos() -> None:
 
 
 def _update_matrix() -> None:
-    """Force-fetch the latest compatibility.yaml from GitHub."""
-    import importlib.resources
-    from pathlib import Path
+    """Force-fetch the latest compatibility.yaml from GitHub and save it to the
+    user-writable override path. The bundled copy is never modified — this keeps
+    --update-matrix working identically across pip-installed, wheel, and editable
+    installs.
+    """
     try:
         import requests  # type: ignore[import-untyped]
         import yaml      # type: ignore[import-untyped]
@@ -146,30 +148,26 @@ def _update_matrix() -> None:
         click.echo("ERROR: 'requests' and 'pyyaml' are required for --update-matrix.", err=True)
         sys.exit(1)
 
-    from px4_doctor.models.compat_matrix import _GITHUB_URL
+    from px4_doctor.models.compat_matrix import _GITHUB_URL, user_override_path
 
     click.echo(f"Fetching: {_GITHUB_URL}")
     try:
         resp = requests.get(_GITHUB_URL, timeout=10)
         resp.raise_for_status()
         data = yaml.safe_load(resp.text)
-    except Exception as exc:  # noqa: BLE001
+    except (requests.RequestException, yaml.YAMLError) as exc:
         click.echo(f"ERROR: Failed to fetch matrix: {exc}", err=True)
         sys.exit(1)
 
-    # Save to the bundled data directory
+    dest = user_override_path()
     try:
-        ref = importlib.resources.files("px4_doctor") / "data"
-        with importlib.resources.as_file(ref) as data_dir:
-            dest = data_dir / "compatibility.yaml"
-            dest.write_text(resp.text, encoding="utf-8")
-            click.echo(f"Updated: {dest}")
-    except Exception as exc:  # noqa: BLE001
-        # Fallback path
-        dest = Path(__file__).parent / "data" / "compatibility.yaml"
+        dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(resp.text, encoding="utf-8")
-        click.echo(f"Updated: {dest}")
+    except OSError as exc:
+        click.echo(f"ERROR: Failed to write to {dest}: {exc}", err=True)
+        sys.exit(1)
 
+    click.echo(f"Updated: {dest}")
     version = data.get("meta", {}).get("last_updated", "unknown")
     click.echo(f"Matrix updated successfully (last_updated: {version})")
 

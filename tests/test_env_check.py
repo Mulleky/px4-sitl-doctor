@@ -30,17 +30,16 @@ def test_fails_when_required_var_missing(monkeypatch):
         assert r.fix is not None
 
 
-def test_passes_when_vars_set(monkeypatch, tmp_path):
-    # GZ_SIM_RESOURCE_PATH is a path-checked var — point to tmp_path so it exists
-    monkeypatch.setenv("GZ_SIM_RESOURCE_PATH", str(tmp_path))
-    monkeypatch.setenv("GZ_SIM_SYSTEM_PLUGIN_PATH", "/some/path")
+def test_passes_when_vars_set(monkeypatch):
+    # AMENT_PREFIX_PATH is the required linux env var in the bundled matrix.
     monkeypatch.setenv("AMENT_PREFIX_PATH", "/opt/ros/humble")
+    monkeypatch.setenv("ROS_DOMAIN_ID", "0")
 
     checker = _make_checker()
     results = checker.run()
-    gz_resource = next((r for r in results if r.checker_name == "GZ_SIM_RESOURCE_PATH"), None)
-    assert gz_resource is not None
-    assert gz_resource.status == "pass"
+    ament = next((r for r in results if r.checker_name == "AMENT_PREFIX_PATH"), None)
+    assert ament is not None
+    assert ament.status == "pass"
 
 
 def test_skips_when_no_matrix():
