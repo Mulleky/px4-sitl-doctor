@@ -60,3 +60,46 @@ pytest tests/ -v
 ```
 
 All tests mock subprocess calls, env vars, and filesystem — no ROS 2, Gazebo, or PX4 installation required.
+
+## Branch Protection
+
+The `main` branch is protected to ensure code quality:
+
+- **Direct pushes blocked:** All changes go through pull requests
+- **Review required:** PRs need 1 approval before merge
+- **Tests must pass:** GitHub Actions CI must succeed before merging
+- **Squash merge only:** Keeps main history clean and reverts simple
+
+### Workflow for contributors
+
+1. Create a feature branch: `git checkout -b my-feature`
+2. Make changes and commit: `git add . && git commit -m "description"`
+3. Push to your fork: `git push origin my-feature`
+4. Open a PR on GitHub — fill in the PR template
+5. Respond to review feedback
+6. Maintainer will squash and merge when ready
+
+**Never force-push to main** — GitHub rejects it anyway. If you accidentally merge something, we can create a revert PR.
+
+## Security & Secrets
+
+**Please never commit:**
+- API keys, tokens, or credentials (GitHub tokens, PyPI tokens, AWS keys, etc.)
+- SSH private keys or `.pem` files
+- Database passwords
+- Personal information (phone numbers, addresses, email beyond project contact)
+
+### If you see a secret in a PR or issue
+
+1. Do NOT merge or discuss it publicly
+2. Email [carlostorresada@gmail.com](mailto:carlostorresada@gmail.com) immediately
+3. Do not include the secret in your email; just describe where it was
+
+### If you accidentally committed a secret
+
+1. Revoke/rotate it immediately (via GitHub, AWS, PyPI, etc.)
+2. Create a new commit removing it: `git add . && git commit -m "Remove secret"`
+3. Force-push is acceptable for removing secrets: `git push --force-with-lease`
+4. Email [carlostorresada@gmail.com](mailto:carlostorresada@gmail.com) to notify
+
+See our [Security Policy](.github/SECURITY.md) for more details.

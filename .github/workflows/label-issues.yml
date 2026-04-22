@@ -1,0 +1,51 @@
+name: Auto-Label Issues
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const title = context.payload.issue.title.toUpperCase();
+            const body = context.payload.issue.body || "";
+
+            let labels = [];
+
+            if (title.includes("[BUG]")) {
+              labels.push("bug");
+            }
+            if (title.includes("[FEATURE]")) {
+              labels.push("enhancement");
+            }
+            if (title.includes("[COMPAT]")) {
+              labels.push("compatibility");
+            }
+            if (title.includes("[SECURITY]")) {
+              labels.push("security");
+            }
+            if (body.includes("Windows") || body.includes("WSL")) {
+              labels.push("platform: windows");
+            }
+            if (body.includes("Ubuntu 22") || body.includes("humble")) {
+              labels.push("platform: ubuntu-22");
+            }
+            if (body.includes("Ubuntu 24") || body.includes("jazzy")) {
+              labels.push("platform: ubuntu-24");
+            }
+
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
