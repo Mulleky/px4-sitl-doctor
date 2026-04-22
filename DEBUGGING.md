@@ -26,7 +26,7 @@ This guide covers how to interpret and act on `px4-doctor` output, fix the most 
 
 The Python Scripts directory is not on your PATH. Three ways to run the tool:
 
-**Option 1 — Python module (always works, no PATH needed)**
+**Option 1 — Python module (no PATH needed)**
 ```bash
 python -m px4_doctor --plain
 ```
