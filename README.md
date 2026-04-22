@@ -137,9 +137,37 @@ See [DEBUGGING.md](DEBUGGING.md) for a full guide covering:
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+**Want to help?** We welcome bug reports, feature requests, and code contributions. Here's how to get started:
 
-"Adding a new check is as simple as creating one file in `checkers/` and registering it in `runner.py`."
+### Report a bug
+
+Found a false positive or false negative? [Open a bug report](../../issues/new?template=bug_report.md) with:
+- Output of `px4-doctor --json`
+- Your environment (OS, Python, ROS 2, Gazebo, PX4 versions)
+
+### Request a feature
+
+Have an idea for a new check or improvement? [Open a feature request](../../issues/new?template=feature_request.md).
+
+### Contribute code
+
+Adding a new checker? Fixing a bug? Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, then:
+
+1. Fork this repo
+2. Create a feature branch: `git checkout -b my-feature`
+3. Add tests in `tests/test_my_check.py`
+4. Run `pytest tests/ -v` to verify
+5. [Open a PR](../../compare) with your changes
+
+**Note:** We use branch protection on `main` — all changes go through pull requests.
+
+### Security issues
+
+Found a security vulnerability? **Do not** open a public issue. Email [carlostorresada@gmail.com](mailto:carlostorresada@gmail.com) with `[SECURITY]` in the subject line. See our [Security Policy](.github/SECURITY.md) for details.
+
+### Code of Conduct
+
+We follow the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectful and inclusive.
 
 ## License
 
