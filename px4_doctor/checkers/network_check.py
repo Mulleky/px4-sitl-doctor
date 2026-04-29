@@ -54,9 +54,10 @@ class NetworkChecker(BaseChecker):
                         message=f"{label} returned HTTP {resp.status_code}",
                     ))
             except Exception as exc:  # noqa: BLE001
+                status = "fail" if critical else "warn"
                 results.append(CheckResult(
                     checker_name=f"Network: {label}",
-                    status="warn",
+                    status=status,
                     message=f"{label} unreachable: {type(exc).__name__}",
                     detail=(
                         "Network connectivity is not required for local SITL, "

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "px4-sitl-doctor"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pre-launch environment validator for the PX4 + ROS 2 + Gazebo SITL stack"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -43,9 +43,9 @@ dev = [
 px4-doctor = "px4_doctor.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/carloangulo/px4-sitl-doctor"
-Repository = "https://github.com/carloangulo/px4-sitl-doctor"
-Issues = "https://github.com/carloangulo/px4-sitl-doctor/issues"
+Homepage = "https://github.com/Mulleky/px4-sitl-doctor"
+Repository = "https://github.com/Mulleky/px4-sitl-doctor"
+Issues = "https://github.com/Mulleky/px4-sitl-doctor/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

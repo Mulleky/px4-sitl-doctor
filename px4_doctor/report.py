@@ -42,6 +42,39 @@ def _group_by_category(results: list[CheckResult]) -> dict[str, list[CheckResult
 # Public entry point
 # ---------------------------------------------------------------------------
 
+def save_report_to_file(
+    report: "RunReport",
+    path: str,
+    *,
+    verbose: bool = False,
+) -> None:
+    """Write the report to *path*, inferring format from the file extension.
+
+    .json → JSON, .md → Markdown, anything else → plain text.
+    """
+    import contextlib
+    import io
+    from pathlib import Path
+
+    dest = Path(path)
+    suffix = dest.suffix.lower()
+
+    if suffix == ".json":
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _render_json(report)
+    elif suffix == ".md":
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _render_markdown(report, verbose=verbose)
+    else:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _render_plain(report, verbose=verbose)
+
+    dest.write_text(buf.getvalue(), encoding="utf-8")
+
+
 def render(report: "RunReport", *, verbose: bool = False,
            as_json: bool = False, as_md: bool = False, plain: bool = False) -> int:
     """Render the report to stdout. Returns the exit code."""
@@ -235,7 +268,6 @@ def _infer_categories(results: list[CheckResult]) -> dict[str, list[CheckResult]
         "GZ_SIM_RESOURCE": "Environment Variables",
         "GZ_SIM_SYSTEM": "Environment Variables",
         "ROS_DOMAIN": "Environment Variables",
-        "DISPLAY": "Environment Variables",
         "Port ": "Ports",
         "Network": "Network",
         "ROS 2 Workspace": "Workspace",

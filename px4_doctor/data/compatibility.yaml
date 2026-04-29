@@ -1,7 +1,7 @@
 meta:
   schema_version: 1
   last_updated: "2026-04-01"
-  source: "https://github.com/carloangulo/px4-sitl-doctor/blob/main/px4_doctor/data/compatibility.yaml"
+  source: "https://github.com/Mulleky/px4-sitl-doctor/blob/main/px4_doctor/data/compatibility.yaml"
 
 platforms:
   - id: ubuntu_22_04
@@ -130,6 +130,9 @@ required_ports:
   - port: 14541
     protocol: UDP
     description: "MAVLink UDP (vehicle 2, multi-drone)"
+  - port: 14550
+    protocol: UDP
+    description: "QGroundControl default MAVLink UDP"
   - port: 8888
     protocol: UDP
     description: "XRCE-DDS default agent port"

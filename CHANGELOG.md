@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented here.
 
+## [0.2.0] — 2026-04-29
+
+### Added
+- `--save-report PATH` flag: save the report to a file; format inferred from extension (`.json`, `.md`, plain text)
+- QGroundControl port 14550 added to required-ports checks
+- `colcon` binary check in the workspace checker — missing colcon now reported as a failure
+
+### Fixed
+- Wrong GitHub owner (`carloangulo` → `Mulleky`) in `compat_matrix.py`, `pyproject.toml`, and `compatibility.yaml` — `--update-matrix` was silently 404-ing
+- Duplicate `"DISPLAY"` key in `report.py:_infer_categories` map (Python silently discarded the first entry)
+- `critical` flag on network endpoints was defined but never consulted — GitHub reachability failures now correctly surface as `fail` instead of `warn`
+
 ## [0.1.0] — 2026-04-16
 
 ### Added
