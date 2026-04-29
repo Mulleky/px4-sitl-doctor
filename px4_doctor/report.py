@@ -75,6 +75,36 @@ def save_report_to_file(
     dest.write_text(buf.getvalue(), encoding="utf-8")
 
 
+def render_export_env(report: "RunReport") -> None:
+    """Print executable export/source lines extracted from failing env check fixes."""
+    import re
+
+    # Matches export/source either at line-start or after prose like "Recommended: "
+    _SHELL_RE = re.compile(
+        r"(?:^|[:\s])\s*(export\s+\w\S*|source\s+\S[^\n]*?)(?:\s*#[^\n]*)?\s*$",
+        re.MULTILINE,
+    )
+
+    lines: list[str] = []
+    seen: set[str] = set()
+    for r in report.results:
+        if r.status in ("fail", "warn") and r.fix:
+            for m in _SHELL_RE.finditer(r.fix):
+                line = m.group(1).strip()
+                if line not in seen:
+                    seen.add(line)
+                    lines.append(line)
+
+    if not lines:
+        print("# No missing environment configuration detected.")
+        return
+
+    print("# Add these lines to ~/.bashrc (or run them in your current shell):")
+    print()
+    for line in lines:
+        print(line)
+
+
 def render(report: "RunReport", *, verbose: bool = False,
            as_json: bool = False, as_md: bool = False, plain: bool = False) -> int:
     """Render the report to stdout. Returns the exit code."""
