@@ -32,6 +32,11 @@ from px4_doctor.runner import DoctorRunner, RunOptions
               help="Skip the named checker(s).")
 @click.option("--update-matrix", is_flag=True,
               help="Force-fetch the latest compatibility.yaml from GitHub and save it locally.")
+@click.option("--save-report", "save_report", default=None, metavar="PATH",
+              help=(
+                  "Save the report to a file. Format is inferred from the extension: "
+                  ".json → JSON, .md → Markdown, anything else → plain text."
+              ))
 @click.version_option(__version__, "--version", prog_name="px4-doctor")
 def main(
     ctx: click.Context,
@@ -45,6 +50,7 @@ def main(
     only: str | None,
     skip_checkers: str | None,
     update_matrix: bool,
+    save_report: str | None,
 ) -> None:
     """px4-sitl-doctor — pre-launch environment validator for PX4 + ROS 2 + Gazebo SITL.
 
@@ -75,7 +81,7 @@ def main(
     runner = DoctorRunner(options)
     report = runner.run_all()
 
-    from px4_doctor.report import render
+    from px4_doctor.report import render, save_report_to_file
     exit_code = render(
         report,
         verbose=verbose,
@@ -83,6 +89,14 @@ def main(
         as_md=as_md,
         plain=plain,
     )
+
+    if save_report:
+        try:
+            save_report_to_file(report, save_report, verbose=verbose)
+            click.echo(f"Report saved to: {save_report}")
+        except OSError as exc:
+            click.echo(f"ERROR: Could not save report to {save_report!r}: {exc}", err=True)
+
     sys.exit(exit_code)
 
 

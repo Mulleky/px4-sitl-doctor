@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 _GITHUB_URL = (
-    "https://raw.githubusercontent.com/carloangulo/px4-sitl-doctor"
+    "https://raw.githubusercontent.com/Mulleky/px4-sitl-doctor"
     "/main/px4_doctor/data/compatibility.yaml"
 )
 _FETCH_TIMEOUT = 2  # seconds

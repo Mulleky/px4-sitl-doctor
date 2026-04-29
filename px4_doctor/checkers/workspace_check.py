@@ -11,6 +11,12 @@ from px4_doctor.platform_utils import detect_platform, find_binary, get_home, ru
 
 _SKIP_PLATFORMS = {"windows_native", "macos"}
 
+_COLCON_FIX = (
+    "Install colcon:\n"
+    "  pip install colcon-common-extensions\n"
+    "Or: sudo apt install python3-colcon-common-extensions"
+)
+
 _WS_SEARCH = [
     "ros2_ws",
     "colcon_ws",
@@ -63,6 +69,22 @@ class WorkspaceChecker(BaseChecker):
             )]
 
         results: list[CheckResult] = []
+
+        # 0. colcon must be installed to build any workspace
+        colcon_bin = find_binary("colcon")
+        if colcon_bin:
+            results.append(CheckResult(
+                checker_name="colcon",
+                status="pass",
+                message="colcon build tool found",
+            ))
+        else:
+            results.append(CheckResult(
+                checker_name="colcon",
+                status="fail",
+                message="colcon not found — required to build the ROS 2 workspace",
+                fix=_COLCON_FIX,
+            ))
 
         # 1. Find workspace
         ws = _find_workspace(self._ws_override)

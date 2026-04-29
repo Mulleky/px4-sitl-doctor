@@ -69,7 +69,7 @@ Your environment has issues that will prevent SITL launch.
 | MicroXRCEAgent | Binary, version, port 8888 | Linux / WSL2 |
 | Environment Vars | GZ_SIM_*, ROS_DOMAIN_ID, AMENT_PREFIX_PATH | All |
 | Shared Libraries | libGstCameraSystem.so, libgps.so | Linux / WSL2 |
-| Port Availability | UDP 14540, 14541, 8888, 7447 | All |
+| Port Availability | UDP 14540, 14541, 14550 (QGC), 8888, 7447 | All |
 | ROS 2 Workspace | install/, px4_msgs, px4_ros_com | Linux / WSL2 |
 | Network | Internet, GitHub, PyPI reachability | All |
 | WSL2 | WSL2 kernel, X11, systemd, memory | WSL2 only |
@@ -87,6 +87,7 @@ Your environment has issues that will prevent SITL launch.
 | `--offline` | Skip network-based checks (matrix is loaded locally by default regardless) |
 | `--only CHECKER[,...]` | Run only named checker(s) |
 | `--skip CHECKER[,...]` | Skip named checker(s) |
+| `--save-report PATH` | Save report to file (`.json`, `.md`, or plain text) |
 | `--update-matrix` | Fetch latest compatibility rules from GitHub |
 | `--version` | Print version and exit |
 
