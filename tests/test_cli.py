@@ -112,3 +112,45 @@ class TestOfflineFlag:
         runner = CliRunner()
         result = runner.invoke(main, ["--offline", "--plain", "--only", "os"])
         assert result.exit_code in (0, 1, 2)
+
+
+class TestSaveReport:
+    def test_save_report_json(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("px4_doctor.runner.detect_platform", lambda: "ubuntu_22_04")
+        out = tmp_path / "out.json"
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["--save-report", str(out), "--offline", "--only", "os", "--plain"]
+        )
+        assert result.exit_code in (0, 1, 2)
+        assert out.exists(), f"Expected {out} to be created; CLI output: {result.output}"
+        import json
+        data = json.loads(out.read_text())
+        assert "version" in data
+        assert "platform" in data
+        assert "summary" in data
+        assert "results" in data
+
+    def test_save_report_md(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("px4_doctor.runner.detect_platform", lambda: "ubuntu_22_04")
+        out = tmp_path / "out.md"
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["--save-report", str(out), "--offline", "--only", "os", "--plain"]
+        )
+        assert result.exit_code in (0, 1, 2)
+        assert out.exists()
+        content = out.read_text(encoding="utf-8")
+        assert "# px4-sitl-doctor" in content
+
+    def test_save_report_plain(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("px4_doctor.runner.detect_platform", lambda: "ubuntu_22_04")
+        out = tmp_path / "out.txt"
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["--save-report", str(out), "--offline", "--only", "os", "--plain"]
+        )
+        assert result.exit_code in (0, 1, 2)
+        assert out.exists()
+        content = out.read_text()
+        assert "SUMMARY" in content
