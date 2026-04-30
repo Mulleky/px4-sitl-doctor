@@ -83,32 +83,69 @@ class MicroXRCEChecker(BaseChecker):
                 min_str = combo.get("microxrce_min", _MIN_VERSION_FALLBACK)
 
         if version:
-            min_ver = parse_version(min_str)
-            if min_ver and version >= min_ver:
+            # v3.x Agent is protocol-incompatible with PX4's embedded v2.x XRCE-DDS client.
+            # Topics appear to connect but never show up in `ros2 topic list`.
+            if version.major >= 3:
+                results.append(CheckResult(
+                    checker_name="MicroXRCEAgent Version",
+                    status="warn",
+                    message=(
+                        f"MicroXRCEAgent {version} (v3.x) detected — "
+                        "PX4's embedded XRCE-DDS client uses the v2.x protocol, "
+                        "which is INCOMPATIBLE with Agent v3.x. "
+                        "ROS 2 topics will not appear even if the agent starts."
+                    ),
+                    fix=(
+                        "Downgrade to Agent v2.x:\n"
+                        "  sudo snap install micro-xrce-dds-agent --channel=2.x/stable\n"
+                        "Or build v2.4.3 from source:\n"
+                        "  git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent\n"
+                        "  cd Micro-XRCE-DDS-Agent && git checkout v2.4.3\n"
+                        "  mkdir build && cd build && cmake .. && make && sudo make install"
+                    ),
+                ))
+            else:
+                min_ver = parse_version(min_str)
+                if min_ver and version >= min_ver:
+                    results.append(CheckResult(
+                        checker_name="MicroXRCEAgent Version",
+                        status="pass",
+                        message=f"MicroXRCEAgent {version} — OK (>= {min_str} required)",
+                    ))
+                elif min_ver:
+                    results.append(CheckResult(
+                        checker_name="MicroXRCEAgent Version",
+                        status="fail",
+                        message=f"MicroXRCEAgent {version} is older than minimum {min_str}",
+                        fix=(
+                            "Upgrade Micro XRCE-DDS Agent:\n"
+                            "  sudo snap refresh micro-xrce-dds-agent\n"
+                            "Or build latest from source."
+                        ),
+                    ))
+        else:
+            # Version not parseable — check raw output for signs of v3.x
+            if "3." in raw_output or raw_output.strip().startswith("3"):
+                results.append(CheckResult(
+                    checker_name="MicroXRCEAgent Version",
+                    status="warn",
+                    message=(
+                        "MicroXRCEAgent appears to be v3.x (version string not fully parsed). "
+                        "PX4's embedded XRCE-DDS client uses v2.x — this combination is incompatible."
+                    ),
+                    fix=(
+                        "Downgrade to Agent v2.x:\n"
+                        "  sudo snap install micro-xrce-dds-agent --channel=2.x/stable"
+                    ),
+                    detail=f"Raw output: {raw_output[:120]}",
+                ))
+            else:
                 results.append(CheckResult(
                     checker_name="MicroXRCEAgent Version",
                     status="pass",
-                    message=f"MicroXRCEAgent {version} — OK (>= {min_str} required)",
+                    message="MicroXRCEAgent found — version string format not recognized",
+                    detail=f"Raw output: {raw_output[:120]}",
                 ))
-            elif min_ver:
-                results.append(CheckResult(
-                    checker_name="MicroXRCEAgent Version",
-                    status="fail",
-                    message=f"MicroXRCEAgent {version} is older than minimum {min_str}",
-                    fix=(
-                        "Upgrade Micro XRCE-DDS Agent:\n"
-                        "  sudo snap refresh micro-xrce-dds-agent\n"
-                        "Or build latest from source."
-                    ),
-                ))
-        else:
-            # Binary found but version not parseable — downgrade to info, not warn
-            results.append(CheckResult(
-                checker_name="MicroXRCEAgent Version",
-                status="pass",
-                message="MicroXRCEAgent found — version string format not recognized (likely v3.x)",
-                detail=f"Raw output: {raw_output[:120]}",
-            ))
 
         # 3. Port 8888 availability
         if _check_port_free(_AGENT_PORT):
