@@ -19,6 +19,15 @@ Install the tool:
 pipx install px4-sitl-doctor
 ```
 
+If you installed with `pip` on Windows and PowerShell says `px4-doctor` is not
+recognized, run:
+
+```powershell
+python -m px4_doctor
+```
+
+or see [`px4-doctor: command not found`](../DEBUGGING.md#px4-doctor-command-not-found).
+
 Run only the checks related to ROS 2 and MicroXRCE-DDS:
 
 ```bash

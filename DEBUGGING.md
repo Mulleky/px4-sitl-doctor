@@ -24,26 +24,53 @@ This guide covers how to interpret and act on `px4-doctor` output, fix the most 
 
 ### `px4-doctor: command not found`
 
-The Python Scripts directory is not on your PATH. Three ways to run the tool:
+If `pip install px4-sitl-doctor` succeeds but PowerShell cannot find
+`px4-doctor`, Python likely installed the executable into your user Scripts
+directory without adding that directory to `PATH`.
 
-**Option 1 — Python module (no PATH needed)**
-```bash
+If pip shows an install location like:
+
+```text
+C:\Users\Carlo\AppData\Roaming\Python\Python314\site-packages
+```
+
+then the script is usually here:
+
+```text
+C:\Users\Carlo\AppData\Roaming\Python\Python314\Scripts\px4-doctor.exe
+```
+
+Run without changing `PATH`:
+
+```powershell
 python -m px4_doctor --plain
 ```
 
-**Option 2 — Full path to the installed script**
-```
-C:\Users\YOUR_USERNAME\AppData\Roaming\PythonXYZ\Scripts\px4-doctor.exe --plain
-```
-Replace `XYZ` with your Python version number (e.g. `Python314`).
+Or call the installed script directly:
 
-**Option 3 — Add Scripts to PATH permanently (Windows)**
-```cmd
-setx PATH "%PATH%;C:\Users\YOUR_USERNAME\AppData\Roaming\PythonXYZ\Scripts"
+```powershell
+& "$env:APPDATA\Python\Python314\Scripts\px4-doctor.exe" --plain
 ```
-Open a **new** terminal after running `setx` — the change does not apply to the current window.
 
-**Option 3 — Add Scripts to PATH permanently (Linux / WSL2)**
+To make `px4-doctor` available in new PowerShell windows:
+
+```powershell
+$scriptPath = "$env:APPDATA\Python\Python314\Scripts"
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";$scriptPath",
+  "User"
+)
+```
+
+Close PowerShell, open a new one, then run:
+
+```powershell
+px4-doctor --plain
+```
+
+For Linux / WSL2 user installs, add the Python user bin directory to `PATH`:
+
 ```bash
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc

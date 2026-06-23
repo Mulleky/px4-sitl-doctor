@@ -16,6 +16,40 @@ Or with pipx (recommended for system-wide use):
 pipx install px4-sitl-doctor
 ```
 
+### Windows: `px4-doctor` is not recognized
+
+If `pip install px4-sitl-doctor` succeeds but PowerShell cannot find
+`px4-doctor`, your Python user Scripts directory is probably not on `PATH`.
+
+Run without changing `PATH`:
+
+```powershell
+python -m px4_doctor
+```
+
+Or call the installed script directly:
+
+```powershell
+& "$env:APPDATA\Python\Python314\Scripts\px4-doctor.exe"
+```
+
+To make `px4-doctor` available in new PowerShell windows:
+
+```powershell
+$scriptPath = "$env:APPDATA\Python\Python314\Scripts"
+[Environment]::SetEnvironmentVariable(
+  "Path",
+  [Environment]::GetEnvironmentVariable("Path", "User") + ";$scriptPath",
+  "User"
+)
+```
+
+Close PowerShell, open a new one, then run:
+
+```powershell
+px4-doctor
+```
+
 ## Quick start
 
 ```bash
